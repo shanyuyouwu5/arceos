@@ -1,5 +1,5 @@
 pub mod mem;
-
+pub mod pl061;
 #[cfg(feature = "smp")]
 pub mod mp;
 
@@ -34,7 +34,27 @@ pub(crate) unsafe extern "C" fn rust_entry(cpu_id: usize, dtb: usize) {
     super::aarch64_common::generic_timer::init_early();
     rust_main(cpu_id, dtb);
 }
-
+fn gpio_init() {
+    info!("rust entry");
+    use crate::platform::aarch64_common::gic;
+    use crate::platform::aarch64_qemu_virt::pl061::pl061_init;
+    pl061_init(); 
+    crate::irq::set_enable(gic::GPIO_IRQ_NUM,true);
+    gic::register_handler(gic::GPIO_IRQ_NUM,handler_gpio_irq);
+}
+fn handler_gpio_irq() {
+    use tock_registers::interfaces::{Writeable,Readable};
+    use crate::platform::aarch64_qemu_virt::pl061::*;
+    // use crate::platform::aarch64_common::psci::system_off;
+    let pl061_reg:&Pl061reg = unsafe{&*PL061_BASE};
+    pl061_reg.ic.set(pl061_reg.ie.get());
+    // system_off();
+    use core::arch::asm;
+    unsafe{
+        asm!("mov w0, #0x018");
+        asm!("hlt #0x0F000");
+    }
+}
 #[cfg(feature = "smp")]
 pub(crate) unsafe extern "C" fn rust_entry_secondary(cpu_id: usize) {
     axcpu::init::init_trap();
@@ -50,6 +70,7 @@ pub fn platform_init() {
     super::aarch64_common::gic::init_primary();
     super::aarch64_common::generic_timer::init_percpu();
     super::aarch64_common::pl011::init();
+    gpio_init();
 }
 
 /// Initializes the platform devices for secondary CPUs.

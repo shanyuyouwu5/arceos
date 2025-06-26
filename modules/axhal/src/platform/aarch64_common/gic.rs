@@ -9,7 +9,7 @@ pub const MAX_IRQ_COUNT: usize = 1024;
 
 /// The timer IRQ number.
 pub const TIMER_IRQ_NUM: usize = translate_irq(14, InterruptType::PPI).unwrap();
-
+pub const GPIO_IRQ_NUM:usize = translate_irq(7, InterruptType::SPI).unwrap();
 /// The UART IRQ number.
 pub const UART_IRQ_NUM: usize = translate_irq(UART_IRQ, InterruptType::SPI).unwrap();
 
